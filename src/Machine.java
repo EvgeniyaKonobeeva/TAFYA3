@@ -74,6 +74,7 @@ public class Machine {
             }else {
                 if(obj.str[0] == stackCh){
                     obj.stack.pop();
+                    obj.str = removeFromArr(obj.str);
                 }
             }
         }
@@ -82,6 +83,15 @@ public class Machine {
 //            TODO good result, otherwise - bad result
         }
 
+    }
+
+    protected char[] removeFromArr(char arr[]){
+        char arr2[] = new char[arr.length-1];
+
+        for(int i = 1; i < arr.length; i++){
+            arr2[i-1] = arr[i];
+        }
+        return arr2;
     }
 
 
