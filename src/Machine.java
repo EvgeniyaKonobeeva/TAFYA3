@@ -7,7 +7,7 @@ import java.util.Stack;
  * Created by Evgenia on 17.10.2016.
  */
 public class Machine {
-    private Map<String, ArrayList<String>> grammarRules;
+    private Map<Character, ArrayList<String>> grammarRules;
     private String inputString;
     private Stack<Character> stack = new Stack<>();
 
@@ -18,6 +18,10 @@ public class Machine {
 
     public void readWord(String word){
         char[] inputStr = word.toCharArray();
+        Stack<Character> stack = new Stack<>();
+        stack.push('E');
+        StackObj obj = new StackObj(stack, inputStr);
+        readWord2(obj);
 
 
     }
@@ -56,33 +60,59 @@ public class Machine {
 //        }
 //    }
 
-    public void readWord2(StackObj obj){
+    public int readWord2(StackObj obj){
 
         while (!obj.stack.empty() && obj.str.length != 0){
+            if(obj.stack.size() > obj.str.length){
+                System.out.println("error 1");
+                return 0;
+            }
             char stackCh = obj.stack.peek();
 
             if(Character.isUpperCase(stackCh)){
                 obj.stack.pop();
 
+                if(!grammarRules.containsKey(stackCh)){
+                    System.out.println("cant find : " +  stackCh);
+                }
                 ArrayList<String> list = grammarRules.get(stackCh);
                 for (int i = 0; i < list.size(); i++){
+
+
+//                   create new obj with old values of stack? history and str
                     StackObj newObj = new StackObj(obj.stack, obj.str);
+                    newObj.copyHistory(obj.history);
+
+//                  work with new obj
                     pushArrToStack(list.get(i).toCharArray(), newObj.stack);
-                    readWord2(newObj);
-//                    TODO добавить многопоточность из пула потоков, именно здесь вести запись истории переходов
+                    newObj.writeToHistory();
+
+                    int res = readWord2(newObj);
+                    if(res == 1){
+                        break;
+                    }
+
                 }
             }else {
                 if(obj.str[0] == stackCh){
                     obj.stack.pop();
                     obj.str = removeFromArr(obj.str);
+                    obj.writeToHistory();
                 }
             }
+            System.out.println("error 2");
+            break;
         }
 
         if(obj.stack.isEmpty() && obj.str.length == 0){
-//            TODO good result, otherwise - bad result
+            obj.printHistory();
+            System.out.println("read");
+            return 1;
         }
-
+        else{
+            System.out.println("cant read");
+        }
+        return 0;
     }
 
     protected char[] removeFromArr(char arr[]){
