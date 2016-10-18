@@ -8,12 +8,10 @@ import java.util.Stack;
  */
 public class Machine {
     private Map<Character, ArrayList<String>> grammarRules;
-    private String inputString;
-    private Stack<Character> stack = new Stack<>();
+    private boolean hasPositiveResult = false;
 
     public Machine(GrammarRules grammarRules){
         this.grammarRules = grammarRules.getRulesMap();
-        stack.push('E');
     }
 
     public void readWord(String word){
@@ -21,98 +19,62 @@ public class Machine {
         Stack<Character> stack = new Stack<>();
         stack.push('E');
         StackObj obj = new StackObj(stack, inputStr);
+        obj.writeToHistory();
         readWord2(obj);
-
-
     }
 
-    protected void pushArrToStack(char[] arr, Stack<Character> stack){
-        for(int i = arr.length-1; i > -1; i--){
-            stack.push(arr[i]);
-        }
-    }
 
-//    protected void readString(char[] strs, Stack<Character> stack){
-//        char[] str = strs;
-//        while (!stack.empty() && str.length != 0){
-//            char stackCh = stack.peek();
-//
-//            if(Character.isUpperCase(stackCh)){
-//                stack.pop();
-//
-//                ArrayList<String> list = grammarRules.get(stackCh);
-//                for (int i = 0; i < list.size(); i++){
-//                    Stack<Character> newStack = new Stack<>();
-//                    newStack.addAll(stack);
-//                    pushArrToStack(list.get(i).toCharArray(), newStack);
-//                    readString(str, newStack);
-////                    TODO добавить многопоточность из пула потоков, именно здесь вести запись истории переходов
-//                }
-//            }else {
-//                if(str[0] == stackCh){
-//                    stack.pop();
-//                }
-//            }
-//        }
-//
-//        if(stack.isEmpty() && str.length == 0){
-////            TODO good result, otherwise - bad result
-//        }
-//    }
+    public void readWord2(StackObj obj){
 
-    public int readWord2(StackObj obj){
-
-        while (!obj.stack.empty() && obj.str.length != 0){
+        while (!obj.stack.empty() && obj.str.length != 0 && !hasPositiveResult){
             if(obj.stack.size() > obj.str.length){
-                System.out.println("error 1");
-                return 0;
+                Thread.currentThread().interrupt();
+                break;
             }
             char stackCh = obj.stack.peek();
 
             if(Character.isUpperCase(stackCh)){
                 obj.stack.pop();
 
-                if(!grammarRules.containsKey(stackCh)){
-                    System.out.println("cant find : " +  stackCh);
-                }
                 ArrayList<String> list = grammarRules.get(stackCh);
                 for (int i = 0; i < list.size(); i++){
-
-
-//                   create new obj with old values of stack? history and str
-                    StackObj newObj = new StackObj(obj.stack, obj.str);
-                    newObj.copyHistory(obj.history);
-
+//                  create new obj with old values of stack? history and str
+                    StackObj newObj = new StackObj();
+                    newObj.copyObject(obj);
 //                  work with new obj
                     pushArrToStack(list.get(i).toCharArray(), newObj.stack);
                     newObj.writeToHistory();
-
-                    int res = readWord2(newObj);
-                    if(res == 1){
-                        break;
-                    }
-
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            readWord2(newObj);
+                        }
+                    }).start();
                 }
             }else {
                 if(obj.str[0] == stackCh){
                     obj.stack.pop();
                     obj.str = removeFromArr(obj.str);
                     obj.writeToHistory();
+                }else{
+                    Thread.currentThread().interrupt();
+                    break;
                 }
             }
-            System.out.println("error 2");
-            break;
         }
 
-        if(obj.stack.isEmpty() && obj.str.length == 0){
+        if((obj.stack.isEmpty() && obj.str.length == 0)){
             obj.printHistory();
             System.out.println("read");
-            return 1;
+            hasPositiveResult = true;
+            Thread.currentThread().interrupt();
+            return;
         }
         else{
-            System.out.println("cant read");
+            Thread.currentThread().interrupt();
+//            System.out.println("can't read");
+            return;
         }
-        return 0;
     }
 
     protected char[] removeFromArr(char arr[]){
@@ -122,6 +84,12 @@ public class Machine {
             arr2[i-1] = arr[i];
         }
         return arr2;
+    }
+
+    protected void pushArrToStack(char[] arr, Stack<Character> stack){
+        for(int i = arr.length-1; i > -1; i--){
+            stack.push(arr[i]);
+        }
     }
 
 

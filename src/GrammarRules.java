@@ -86,7 +86,7 @@ public class GrammarRules {
         for(String s : pushdownAlphabet){
             System.out.print(s + "  ");
         }
-
+        System.out.print("h0");
         System.out.println();
     }
 
